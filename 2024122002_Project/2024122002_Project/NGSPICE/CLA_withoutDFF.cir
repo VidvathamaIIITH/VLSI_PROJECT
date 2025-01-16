@@ -1,0 +1,195 @@
+.include TSMC_180nm.txt
+.param SUPPLY=1.8
+.param VGG=1.5
+.param LAMBDA=0.09u
+.param width_N={20*LAMBDA}
+.param width_P={2*width_N}
+.global gnd vdd
+Vdd	vdd	gnd	'SUPPLY'
+
+VA0 A0 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VA1 A1 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VA2 A2 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VA3 A3 gnd pulse(0 1.8 5n 0 0 5n 10n)
+
+VB0 B0 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VB1 B1 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VB2 B2 gnd pulse(0 1.8 5n 0 0 5n 10n)
+VB3 B3 gnd pulse(0 1.8 5n 0 0 5n 10n)
+
+VC0 C0 gnd pulse(0 1.8 5n 0 0 5n 10n)
+
+// INVERTER ( NOT GATE )
+.subckt inv y x vdd gnd
+
+M1      y       x       gnd     gnd  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M2      y       x       vdd  vdd   CMOSP   W={width_P}   L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P} AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+.ends inv 
+
+
+
+// 2 input AND GATE
+.subckt and y a b vdd gnd 
+
+M1      p       b       gnd     gnd  CMOSN   W={2*width_N}   L={2*LAMBDA}
++ AS={5*2*width_N*LAMBDA} PS={10*LAMBDA+2*2*width_N} AD={5*2*width_N*LAMBDA} PD={10*LAMBDA+2*2*width_N}
+
+M2      y_temp       a       p     gnd  CMOSN   W={2*width_N}   L={2*LAMBDA}
++ AS={5*2*width_N*LAMBDA} PS={10*LAMBDA+2*2*width_N} AD={5*2*width_N*LAMBDA} PD={10*LAMBDA+2*2*width_N}
+
+M3     y_temp       b       vdd  vdd   CMOSP   W={width_P}   L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P} AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M4     y_temp       a       vdd  vdd   CMOSP   W={width_P}   L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P} AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+x1_not y y_temp  vdd gnd inv
+.ends and
+
+
+
+// 2 input OR GATE
+.subckt or y a b vdd gnd 
+
+M1      y_temp       b       gnd     gnd  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M2      y_temp       a       gnd     gnd  CMOSN   W={width_N}   L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M3     y_temp       b       p  vdd   CMOSP   W={2*width_P}   L={2*LAMBDA}
++ AS={5*2*width_P*LAMBDA} PS={10*LAMBDA+2*2*width_P} AD={5*2*width_P*LAMBDA} PD={10*LAMBDA+2*2*width_P}
+
+
+M4     p       a      vdd  vdd   CMOSP   W={2*width_P}   L={2*LAMBDA}
++ AS={5*2*width_P*LAMBDA} PS={10*LAMBDA+2*2*width_P} AD={5*2*width_P*LAMBDA} PD={10*LAMBDA+2*2*width_P}
+
+x1_not y y_temp  vdd gnd inv
+
+.ends or
+
+
+// 3 input AND GATE
+.subckt 3_and y a b c vdd gnd
+
+x1_and y_temp a b vdd gnd and
+x2_and y y_temp c vdd gnd and 
+
+.ends
+
+// 4 input AND GATE
+.subckt 4_and y a b c d vdd gnd
+
+x1_and y_temp a b c vdd gnd 3_and
+x2_and y y_temp d vdd gnd and 
+
+.ends
+
+// 5 input AND GATE
+.subckt 5_and y a b c d e vdd gnd
+
+x1_and y_temp a b c d vdd gnd 4_and
+x2_and y y_temp e vdd gnd and 
+
+.ends
+
+// 3 input OR GATE
+.subckt 3_or y a b c vdd gnd
+
+x1_and y_temp a b vdd gnd or
+x2_and y y_temp c vdd gnd or 
+
+.ends
+ 
+// 4 input OR GATE 
+.subckt 4_or y a b c d vdd gnd
+
+x1_and y_temp a b c vdd gnd 3_or
+x2_and y y_temp d vdd gnd or 
+
+.ends
+
+// 5 input OR GATE
+.subckt 5_or y a b c d e vdd gnd
+
+x1_and y_temp a b c d vdd gnd 4_or
+x2_and y y_temp e vdd gnd or 
+
+.ends
+
+// XOR GATE
+.subckt xor Y A B vdd gnd 
+x1 Anot A vdd gnd inv
+x2 Bnot B vdd gnd inv
+
+M3 B A xf gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} 
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+
+M4 Bnot Anot xf gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N} 
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+x3 Y xf vdd gnd inv 
+.ends xor
+
+       
+* finding Pi's for each bit
+x1 P0 A0 B0 vdd gnd xor
+x2 P1 A1 B1 vdd gnd xor
+x3 P2 A2 B2 vdd gnd xor
+x4 P3 A3 B3 vdd gnd xor
+
+* finding Gi's for each bit
+x5 G0 A0 B0 vdd gnd and
+x6 G1 A1 B1 vdd gnd and
+x7 G2 A2 B2 vdd gnd and
+x8 G3 A3 B3 vdd gnd and
+
+* finding Ci's for each bit
+x9 a1 P0 C0 vdd gnd and
+x10 C1 G0 a1 vdd gnd or
+x11 a2_1 P1 P0 C0 vdd gnd 3_and
+x12 a2_2 P1 G0 vdd gnd and
+x13 C2 G1 a2_1 a2_2 vdd gnd 3_or
+x14 a3_1 P2 P1 P0 C0 vdd gnd 4_and
+x15 a3_2 P2 P1 G0 vdd gnd 3_and
+x16 a3_3 P2 G1 vdd gnd and
+x17 C3 G2 a3_1 a3_2 a3_3 vdd gnd 4_or
+x18 a4_1 P3 P2 P1 P0 C0 vdd gnd 5_and
+x19 a4_2 P3 P2 P1 G0 vdd gnd 4_and
+x20 a4_3 P3 P2 G1 vdd gnd 3_and
+x21 a4_4 P3 G2 vdd gnd and
+x22 C4 G3 a4_1 a4_2 a4_3 a4_4 vdd gnd 5_or
+
+* finding Si's for each bit
+x17 S0 P0 C0 vdd gnd xor
+x18 S1 P1 C1 vdd gnd xor
+x19 S2 P2 C2 vdd gnd xor
+x20 S3 P3 C3 vdd gnd xor
+
+
+* initial values set to 0 
+* .ic V(S0)=0 V(S1)=0 V(S2)=0 V(S3)=0 V(C4)=0
+
+.tran 0.01n 10n
+.measure tran tpd_s0 trig v(A0) val=0.9 rise=1 targ v(S0) val=0.9 rise=1
+.measure tran tpd_s1 trig v(A0) val=0.9 rise=1 targ v(S1) val=0.9 rise=1
+.measure tran tpd_s2 trig v(A0) val=0.9 rise=1 targ v(S2) val=0.9 rise=1
+.measure tran tpd_s3 trig v(A0) val=0.9 rise=1 targ v(S3) val=0.9 rise=1
+.measure tran tpd_C4 trig v(A0) val=0.9 rise=1 targ v(C4) val=0.9 rise=1
+
+.control
+run
+set curplottitle="Vidvathama-2024122002"
+plot v(S0) 2+V(S1) 4+V(S2) 6+V(S3) 8+V(C4)
+* plot v(C0) v(C1) v(C2) v(C3)
+* wrdata output.txt v(S0) v(S1) v(S2) v(S3)
+.endc
+
+.end

@@ -1,0 +1,97 @@
+.include TSMC_180nm.txt
+
+.param SUPPLY=1.8
+.param LAMBDA=0.09u
+.param width_N={20*LAMBDA}
+.param width_P={2*width_N}
+.global gnd vdd  
+ Vdd vdd gnd 'SUPPLY'
+
+ *can u give input to d flip flop 
+Vclk clk gnd PULSE(1.8 0 0n 0n 0n 5.0n 10.0n)
+Va d gnd PULSE(0 1.8 4.89n 0n 0n 10n 20n)
+.subckt inv y x vdd gnd w_N=width_N
+.param w_P=2*w_N
+
+M1      y       x       gnd     gnd  CMOSN   W={w_N}   L={2*LAMBDA}
++ AS={5*w_N*LAMBDA} PS={10*LAMBDA+2*w_N} AD={5*w_N*LAMBDA} PD={10*LAMBDA+2*w_N}
+
+M2      y       x       vdd  vdd   CMOSP   W={w_P}   L={2*LAMBDA}
++ AS={5*w_P*LAMBDA} PS={10*LAMBDA+2*w_P} AD={5*w_P*LAMBDA} PD={10*LAMBDA+2*w_P}
+
+.ends inv 
+
+
+
+
+.subckt flipflop out D clk vdd gnd 
+* drain gate source body
+
+M1 d1 D vdd vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M2 d2 clk d1 vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M3 d2 D gnd gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N}
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M4 d3 d2 vdd vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M5 d4 clk d3 vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M6 gnd d2 d4 gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N}
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M7 d5 d4 vdd vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M8 d6 clk d5 gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M9 gnd d4 d6 gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N}
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+M10 Q d5 vdd vdd CMOSP W={width_P} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M11 d8 clk Q gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_P*LAMBDA} PS={10*LAMBDA+2*width_P}
++ AD={5*width_P*LAMBDA} PD={10*LAMBDA+2*width_P}
+
+M12 gnd d5 d8 gnd CMOSN W={width_N} L={2*LAMBDA}
++ AS={5*width_N*LAMBDA} PS={10*LAMBDA+2*width_N}
++ AD={5*width_N*LAMBDA} PD={10*LAMBDA+2*width_N}
+
+Xinv1 out_not Q vdd gnd inv
+Xinv2 out out_not vdd gnd inv
+.ends flipflop
+*can u check the output for the d flip dlop
+X1 Q d clk vdd gnd flipflop
+
+* Measuring tpcq
+.measure tran tpcq_r trig v(clk) val='SUPPLY/2' rise=1 targ v(Q) val='SUPPLY/2' rise=1
+.measure tran tpcq_f trig v(clk) val='SUPPLY/2' rise=2 targ v(Q) val='SUPPLY/2' fall=1
+.measure tran tpcq param='(tpcq_r+tpcq_f)/2' goal=1
+
+
+
+.tran 0.01ns 20ns
+.control
+run
+set curplottitle="Vansh Agarwal-2023102043"
+plot clk-2 d Q+2
+.endc
+.end
